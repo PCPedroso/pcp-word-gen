@@ -1,58 +1,92 @@
 package main
 
 import (
-	"bufio"
+	"encoding/csv"
+	"encoding/json"
 	"fmt"
-	"os"
+	"net/http"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/tyler-smith/go-bip39"
 )
+
+const nroItens int = 12
+
+type Word struct {
+	Valor []string
+}
 
 type Dados struct {
 	Id    string
 	Valor string
 }
 
+var (
+	values []string
+	mu     sync.Mutex
+)
+
+type Gabarito struct {
+	Id    int
+	Word  string
+	Value string
+}
+
 func main() {
-	scanner := bufio.NewScanner(os.Stdin)
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/listajson", geraGabaritoJSON)
+	mux.HandleFunc("/listacsv", geraGabaritoCSV)
+	mux.HandleFunc("/addvalor/", handleAddValues)
+	mux.HandleFunc("/getvalor", handleGetValues)
+
+	http.ListenAndServe(":8080", mux)
+}
+
+func handleAddValues(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(r.URL.Path, "/")
+	if len(parts) != 3 {
+		http.Error(w, "URL inválida", http.StatusBadRequest)
+		return
+	}
+
+	valorStr := parts[2]
+	valor, err := strconv.Atoi(valorStr)
+	if err != nil {
+		http.Error(w, "Valor inválido", http.StatusBadRequest)
+		return
+	}
+
+	mu.Lock()
+	values = append(values, strconv.Itoa(valor))
+	mu.Unlock()
+
+	fmt.Fprintf(w, "Valor %d adicionado. %v de %v\n", valor, len(values), nroItens)
+}
+
+func handleGetValues(w http.ResponseWriter, r *http.Request) {
+	mu.Lock()
+	defer mu.Unlock()
+
 	var dados []Dados
 
-	for {
-		fmt.Print("Digite dados (ou 'ok' para concluir): ")
-
-		scanner.Scan()
-		entrada := scanner.Text()
-
-		if entrada == "ok" {
-			break
-		}
-
-		if entrada == "lista" {
-			nomeArquivo := "gabarito.csv"
-			arquivo, err := os.Create(nomeArquivo)
-			if err != nil {
-				panic(err)
-			}
-			defer arquivo.Close()
-
-			var listaWord = bip39.GetWordList()
-
-			for i, word := range listaWord {
-				_, err := arquivo.Write([]byte(fmt.Sprintf("%v;%v;%v;\n", i+1, word, inteiroParaBinario(i+1))))
-				if err != nil {
-					panic(err)
-				}
-			}
-			fmt.Println("Arquivo gerado com sucesso: ", nomeArquivo)
-			os.Exit(0)
-			break
-		}
-
-		partes := strings.Split(entrada, ";")
-		dados = append(dados, Dados{Id: partes[0], Valor: partes[1]})
+	if len(values) < nroItens {
+		http.Error(w, fmt.Sprintf("%v valores informados, são necessários %v valores", len(values), nroItens), http.StatusBadRequest)
+		return
 	}
+
+	for _, item := range values {
+		id, err := strconv.Atoi(item[1:])
+		if err != nil {
+			http.Error(w, "Valor inválido", http.StatusBadRequest)
+		}
+
+		dados = append(dados, Dados{Id: item[:1], Valor: inteiroParaBinario(id)})
+	}
+
+	values = nil
 
 	entropy, _ := bip39.NewEntropy(256)
 
@@ -62,26 +96,60 @@ func main() {
 		palavras += mnemonic + " "
 	}
 
+	csvWriter := csv.NewWriter(w)
 	lista := textoToList(palavras)
 
-	nomeArquivo := "palavras.csv"
-	arquivo, err := os.Create(nomeArquivo)
-	if err != nil {
-		panic(err)
-	}
-	defer arquivo.Close()
-
 	for i, item := range dados {
-		lista[i] = substituiPalavra(lista[i], item.Id, item.Valor)
-	}
-
-	for _, item := range lista {
-		_, err := arquivo.Write([]byte(fmt.Sprint(strings.ReplaceAll(item, " ", ";"), "\n")))
+		err := csvWriter.Write(strings.Fields(substituiPalavra(lista[i], item.Id, item.Valor)))
 		if err != nil {
-			panic(err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}
-	fmt.Println("Arquivo gerado com sucesso: ", nomeArquivo)
+
+	csvWriter.Flush()
+	w.Header().Set("Context-Type", "text/csv")
+	w.WriteHeader(http.StatusOK)
+}
+
+func geraGabaritoJSON(w http.ResponseWriter, r *http.Request) {
+	var listaWord = bip39.GetWordList()
+
+	var gabarido []Gabarito
+	for i, word := range listaWord {
+		id := i + 1
+		value := inteiroParaBinario(id)
+		gabarido = append(gabarido, Gabarito{Id: id, Word: word, Value: value})
+	}
+
+	w.Header().Set("Context-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(gabarido)
+}
+
+func geraGabaritoCSV(w http.ResponseWriter, r *http.Request) {
+	listaWord := bip39.GetWordList()
+	csvWriter := csv.NewWriter(w)
+
+	err := csvWriter.Write([]string{"Id", "Word", "Value"})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	for i, word := range listaWord {
+		id := i + 1
+		value := inteiroParaBinario(id)
+
+		err := csvWriter.Write([]string{strconv.Itoa(id), word, value})
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	csvWriter.Flush()
+	w.Header().Set("Content-Type", "text/csv")
 }
 
 func substituiPalavra(valores string, indice string, valor string) string {
