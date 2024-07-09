@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,8 +15,13 @@ import (
 
 const nroItens int = 12
 
-type Word struct {
-	Valor []string
+type Result struct {
+	Word []string
+}
+
+type App struct {
+	value  []string
+	result []Result
 }
 
 type Dados struct {
@@ -35,35 +41,59 @@ type Gabarito struct {
 }
 
 func main() {
+	app := &App{}
+
 	mux := http.NewServeMux()
+
+	mux.HandleFunc("/", app.homeHandler)
+	mux.HandleFunc("/add", app.addValueHandler)
+	mux.HandleFunc("/process", app.processValuesHandler)
 
 	mux.HandleFunc("/listajson", geraGabaritoJSON)
 	mux.HandleFunc("/listacsv", geraGabaritoCSV)
-	mux.HandleFunc("/addvalor/", handleAddValues)
 	mux.HandleFunc("/getvalor", handleGetValues)
 
 	http.ListenAndServe(":8080", mux)
 }
 
-func handleAddValues(w http.ResponseWriter, r *http.Request) {
-	parts := strings.Split(r.URL.Path, "/")
-	if len(parts) != 3 {
-		http.Error(w, "URL inválida", http.StatusBadRequest)
-		return
+func (app *App) homeHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl := template.Must(template.ParseFiles("index.html"))
+	tmpl.Execute(w, app.value)
+}
+
+func (app *App) addValueHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		valueStr := r.FormValue("value")
+		_, err := strconv.Atoi(valueStr)
+		if err == nil {
+			app.value = append(app.value, valueStr)
+		}
+	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (app *App) processValuesHandler(w http.ResponseWriter, r *http.Request) {
+	entropy, _ := bip39.NewEntropy(256)
+
+	var palavras string
+	for range 10 {
+		mnemonic, _ := bip39.NewMnemonic(entropy)
+		palavras += mnemonic + " "
 	}
 
-	valorStr := parts[2]
-	valor, err := strconv.Atoi(valorStr)
-	if err != nil {
-		http.Error(w, "Valor inválido", http.StatusBadRequest)
-		return
+	lista := textoToList(palavras)
+
+	for i, item := range app.value {
+		id, err := strconv.Atoi(item[1:])
+		if err != nil {
+			http.Error(w, "Valor inválido", http.StatusBadRequest)
+		}
+
+		app.result = append(app.result, Result{Word: strings.Fields(replaceWords(lista[i], item[1:], id))})
 	}
 
-	mu.Lock()
-	values = append(values, strconv.Itoa(valor))
-	mu.Unlock()
-
-	fmt.Fprintf(w, "Valor %d adicionado. %v de %v\n", valor, len(values), nroItens)
+	tmpl := template.Must(template.ParseFiles("result.html"))
+	tmpl.Execute(w, app.result)
 }
 
 func handleGetValues(w http.ResponseWriter, r *http.Request) {
@@ -158,6 +188,13 @@ func substituiPalavra(valores string, indice string, valor string) string {
 	decimal := binaryToDecimal(valor)
 	palavras[i] = getWordByIndex(decimal)
 	return strings.Join(palavras, " ")
+}
+
+func replaceWords(values string, index string, decimal int) string {
+	i, _ := strconv.Atoi(index)
+	words := strings.Fields(values)
+	words[i] = getWordByIndex(decimal)
+	return strings.Join(words, " ")
 }
 
 func getWordByIndex(i int) string {

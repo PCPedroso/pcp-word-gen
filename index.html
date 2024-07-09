@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Value Adder</title>
+</head>
+<body>
+    <h1>Add Values</h1>
+    <form action="/add" method="post">
+        <label for="value">Value:</label>
+        <input type="text" id="value" name="value" required>
+        <button type="submit">Add</button>
+    </form>
+    <form action="/process" method="post">
+        <button type="submit">Process Values</button>
+    </form>
+    <h2>Current Values</h2>
+    <ul>
+        {{range .}}
+        <li>{{.}}</li>
+        {{else}}
+        <li>No values added yet.</li>
+        {{end}}
+    </ul>
+</body>
+</html>
