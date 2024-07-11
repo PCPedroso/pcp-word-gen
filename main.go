@@ -41,11 +41,12 @@ type Gabarito struct {
 }
 
 func main() {
-	app := &App{}
+	var app = &App{}
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", app.homeHandler)
+	mux.HandleFunc("/back", app.backToHome)
 	mux.HandleFunc("/add", app.addValueHandler)
 	mux.HandleFunc("/process", app.processValuesHandler)
 
@@ -57,6 +58,12 @@ func main() {
 }
 
 func (app *App) homeHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl := template.Must(template.ParseFiles("index.html"))
+	tmpl.Execute(w, app.value)
+}
+
+func (app *App) backToHome(w http.ResponseWriter, r *http.Request) {
+
 	tmpl := template.Must(template.ParseFiles("index.html"))
 	tmpl.Execute(w, app.value)
 }
