@@ -2,25 +2,118 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Value Adder</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            display: flex;
+            background: #fff;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+        .form-section, .values-section {
+            padding: 20px;
+        }
+        .form-section {
+            border-right: 1px solid #ccc;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+        }
+        input[type="text"] {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .values-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+        .values-grid li {
+            background: #fff;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            list-style-type: none;
+        }
+        .values-section ul {
+            padding: 0;
+        }
+    </style>
 </head>
 <body>
-    <h1>Add Values</h1>
-    <form action="/add" method="post">
-        <label for="value">Value:</label>
-        <input type="text" id="value" name="value" required>
-        <button type="submit">Add</button>
-    </form>
-    <form action="/process" method="post">
-        <button type="submit">Process Values</button>
-    </form>
-    <h2>Current Values</h2>
-    <ul>
-        {{range .}}
-        <li>{{.}}</li>
-        {{else}}
-        <li>No values added yet.</li>
-        {{end}}
-    </ul>
+    <div class="container">
+        <div class="form-section">
+            <h1>Add Values</h1>
+            <form id="add-form" action="/add" method="post">
+                <label for="value">Value:</label>
+                <input type="text" id="value" name="value" required>
+                <button type="submit">Add</button>
+            </form>
+            <form action="/process" method="post">
+                <button type="submit">Process Values</button>
+            </form>
+            <form action="/clear" method="post">
+                <button type="submit">Clear Values</button>
+            </form>
+        </div>
+        <div class="values-section">
+            <h2>Current Values</h2>
+            <ul class="values-grid">
+                {{range .}}
+                <li>{{.}}</li>
+                {{else}}
+                <li>No values added yet.</li>
+                {{end}}
+            </ul>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('add-form').addEventListener('submit', function(event) {
+                setTimeout(function() {
+                    document.getElementById('value').focus();
+                }, 0);
+            });
+        });
+    </script>
 </body>
 </html>

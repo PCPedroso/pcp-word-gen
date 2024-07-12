@@ -1,43 +1,23 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
-	"strconv"
-	"sync"
+
+	"github.com/PCPedroso/pcp-pcp-word-gen/handlers"
 )
 
-type Data struct {
-	Value string
-}
-
-type DataBase struct {
-	Id   int
-	Word string
-}
-
-var (
-	dataSource []DataBase
-	mtx        sync.Mutex
-)
-
-func smain() {
+func main() {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/", homeHandler)
-}
+	mux.HandleFunc("/", handlers.HomeHandler)
+	mux.HandleFunc("/add", handlers.AddHandler)
+	mux.HandleFunc("/process", handlers.ProcessHandler)
+	mux.HandleFunc("/clear", handlers.ClearHandler)
 
-func homeHandler(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/gabaritojson", handlers.GeraGabaritoJSON)
+	mux.HandleFunc("/gabaritocsv", handlers.GeraGabaritoCSV)
 
-}
-
-func (data *Data) AddData() (*DataBase, error) {
-	id, err := strconv.Atoi(data.Value[:1])
-	if err != nil {
-		return nil, err
-	}
-
-	return &DataBase{
-		Id:   id,
-		Word: data.Value[1:],
-	}, nil
+	fmt.Println("Server is running on http://localhost:8080")
+	http.ListenAndServe(":8080", mux)
 }
