@@ -14,18 +14,9 @@ import (
 	"github.com/tyler-smith/go-bip39"
 )
 
-type Result struct {
-	Word []string
-}
-
-type Data struct {
-	Indice string
-	Value  int
-}
-
 var (
 	value      []string
-	dataSource []Data
+	dataSource []database.Data
 	mtx        sync.Mutex
 )
 
@@ -86,7 +77,7 @@ func AddHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "Dados inválidos para a operação", http.StatusMethodNotAllowed)
 		}
 
-		data := Data{Indice: idx, Value: vlr}
+		data := database.Data{Indice: idx, Value: vlr}
 
 		mtx.Lock()
 		value = append(value, formData)
@@ -110,9 +101,9 @@ func ProcessHandler(w http.ResponseWriter, r *http.Request) {
 
 	lista := utils.TextToList(words)
 
-	result := []Result{}
+	result := []database.Result{}
 	for i, item := range dataSource {
-		result = append(result, Result{Word: strings.Fields(utils.ReplaceWordsInt(lista[i], item.Indice, item.Value))})
+		result = append(result, database.Result{Word: strings.Fields(utils.ReplaceWordsInt(lista[i], item.Indice, item.Value))})
 	}
 
 	tmpl := template.Must(template.ParseFiles("result.html"))
@@ -123,7 +114,7 @@ func ClearHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "POST" {
 		mtx.Lock()
 		value = []string{}
-		dataSource = []Data{}
+		dataSource = []database.Data{}
 		mtx.Unlock()
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 	} else {
