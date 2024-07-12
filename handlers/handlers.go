@@ -19,8 +19,8 @@ type Result struct {
 }
 
 type Data struct {
-	Id    int
-	Value string
+	Indice string
+	Value  int
 }
 
 var (
@@ -80,14 +80,13 @@ func AddHandler(w http.ResponseWriter, r *http.Request) {
 
 		formData := r.FormValue("value")
 
-		id, err := strconv.Atoi(formData[:1])
+		idx := formData[:1]
+		vlr, err := strconv.Atoi(formData[1:])
 		if err != nil {
 			http.Error(w, "Dados inválidos para a operação", http.StatusMethodNotAllowed)
 		}
 
-		data := Data{Id: id,
-			Value: formData[1:],
-		}
+		data := Data{Indice: idx, Value: vlr}
 
 		mtx.Lock()
 		value = append(value, formData)
@@ -113,7 +112,7 @@ func ProcessHandler(w http.ResponseWriter, r *http.Request) {
 
 	result := []Result{}
 	for i, item := range dataSource {
-		result = append(result, Result{Word: strings.Fields(utils.ReplaceWordsInt(lista[i], item.Value, item.Id))})
+		result = append(result, Result{Word: strings.Fields(utils.ReplaceWordsInt(lista[i], item.Indice, item.Value))})
 	}
 
 	tmpl := template.Must(template.ParseFiles("result.html"))
