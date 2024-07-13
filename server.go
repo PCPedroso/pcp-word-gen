@@ -12,8 +12,10 @@ func main() {
 
 	mux.HandleFunc("/", handlers.HomeHandler)
 	mux.HandleFunc("/add", handlers.AddHandler)
+	mux.HandleFunc("/edit", handlers.EditHandler)
 	mux.HandleFunc("/process", handlers.ProcessHandler)
 	mux.HandleFunc("/clear", handlers.ClearHandler)
+	mux.HandleFunc("/generate", handlers.GenerateHandler)
 
 	mux.HandleFunc("/gabaritojson", handlers.GeraGabaritoJSON)
 	mux.HandleFunc("/gabaritocsv", handlers.GeraGabaritoCSV)

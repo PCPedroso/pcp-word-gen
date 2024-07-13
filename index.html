@@ -21,12 +21,17 @@
             padding: 20px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             border-radius: 5px;
+            width: 800px;
         }
         .form-section, .values-section {
             padding: 20px;
         }
+        .values-section{
+            width: 70%;
+        }
         .form-section {
             border-right: 1px solid #ccc;
+            width: 30%;
         }
         h1, h2 {
             color: #333;
@@ -58,7 +63,7 @@
             font-size: 16px;
             margin-bottom: 10px;
         }
-        button:hover {
+        .button-control:hover {
             background-color: #0056b3;
         }
         .values-grid {
@@ -73,37 +78,77 @@
             border-radius: 5px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
             list-style-type: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 20px;
         }
         .values-section ul {
             padding: 0;
+        }
+        .edit-form {
+            display: none;
+            flex-direction: row;
+            margin: 0;
+        }
+        .edit-form input[type="text"] {
+            margin-right: 5px;
+        }
+        .save-btn {
+            background: none;
+            border: none;
+            color: green;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 0 5px;
+            margin-left: 5px;
+            align-self: center;
+            width: 30px;
+        }
+        .value-text{
+            width: 80px;
+            flex-grow: 1;
+            text-align: right;
+        }
+        .new-text {
+            margin: 0 !important;
+            padding: 6px !important;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="form-section">
-            <h1>Add Values</h1>
+            <h2>Add Values</h2>
             <form id="add-form" action="/add" method="post">
                 <label for="value">Value:</label>
                 <input type="text" id="value" name="value" required>
-                <button type="submit">Add</button>
+                <button type="submit" class="button-control" >Add</button>
             </form>
             <form action="/process" method="post">
-                <button type="submit">Process Values</button>
+                <button type="submit" class="button-control" >Process Values</button>
             </form>
             <form action="/clear" method="post">
-                <button type="submit">Clear Values</button>
+                <button type="submit" class="button-control" >Clear Values</button>
+            </form>
+            <form action="/generate" method="post">
+                <button type="submit" class="button-control">Generate Values</button>
             </form>
         </div>
         <div class="values-section">
             <h2>Current Values</h2>
-            <ul class="values-grid">
+            <ul class="values-grid" id="values-list">
                 {{range .}}
-                <li>{{.}}</li>
-                {{else}}
-                <li>No values added yet.</li>
+                <li data-value="{{.}}">
+                    <span class="value-text">{{.}}</span>
+                    <form class="edit-form" action="/edit" method="post">
+                        <input type="hidden" name="oldValue" value="{{.}}">
+                        <input type="text" class="new-text" name="newValue" value="{{.}}" required>
+                        <button type="submit" class="save-btn">&#10003;</button>
+                    </form>
+                </li>
                 {{end}}
-            </ul>
+            </ul>            
         </div>
     </div>
     <script>
@@ -112,6 +157,17 @@
                 setTimeout(function() {
                     document.getElementById('value').focus();
                 }, 0);
+            });
+
+
+            document.querySelectorAll('.value-text').forEach(span => {
+                span.addEventListener('dblclick', function() {
+                    const li = this.closest('li');
+                    li.querySelector('.edit-form').style.display = 'flex';
+                    li.querySelector('.edit-form input[type="text"]').focus();
+                    li.querySelector('.edit-form input[type="text"]').select();
+                    this.style.display = 'none';
+                });
             });
         });
     </script>

@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"net/http"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -90,6 +91,47 @@ func AddHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func EditHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
+		r.ParseForm()
+
+		newValue := r.FormValue("newValue")
+		oldValue := r.FormValue("oldValue")
+
+		idx := newValue[:1]
+		vlr, err := strconv.Atoi(newValue[1:])
+		if err != nil {
+			http.Error(w, "Dados inválidos para a operação", http.StatusMethodNotAllowed)
+		}
+
+		newData := database.Data{Indice: idx, Value: vlr}
+
+		idx = oldValue[:1]
+		vlr, err = strconv.Atoi(oldValue[1:])
+		if err != nil {
+			http.Error(w, "Dados inválidos para a operação", http.StatusMethodNotAllowed)
+		}
+
+		oldData := database.Data{Indice: idx, Value: vlr}
+
+		idxValue := slices.Index(value, oldValue)
+		idxData := slices.Index(dataSource, oldData)
+
+		mtx.Lock()
+		if idxValue > -1 {
+			value[idxValue] = newValue
+		}
+
+		if idxData > -1 {
+			dataSource[idxData] = newData
+		}
+		mtx.Unlock()
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+	} else {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+	}
+}
+
 func ProcessHandler(w http.ResponseWriter, r *http.Request) {
 	entropy, _ := bip39.NewEntropy(256)
 
@@ -120,4 +162,22 @@ func ClearHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 	}
+}
+
+func GenerateHandler(w http.ResponseWriter, r *http.Request) {
+	entropy, _ := bip39.NewEntropy(256)
+
+	var words string
+	for range 10 {
+		mnemonic, _ := bip39.NewMnemonic(entropy)
+		words += mnemonic + " "
+	}
+
+	lista := utils.TextToList(words)
+	result := []database.Result{}
+	for _, item := range lista {
+		result = append(result, database.Result{Word: strings.Fields(item)})
+	}
+	tmpl := template.Must(template.ParseFiles("result.html"))
+	tmpl.Execute(w, result)
 }
