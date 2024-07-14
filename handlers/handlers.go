@@ -145,7 +145,15 @@ func ProcessHandler(w http.ResponseWriter, r *http.Request) {
 
 	result := []database.Result{}
 	for i, item := range dataSource {
-		result = append(result, database.Result{Word: strings.Fields(utils.ReplaceWordsInt(lista[i], item.Indice, item.Value))})
+		index, err := strconv.Atoi(item.Indice)
+		if err != nil {
+			index, err = utils.SetIndexByChar(item.Indice)
+			if err != nil {
+				index = -1
+			}
+		}
+
+		result = append(result, database.Result{Word: strings.Fields(utils.ReplaceWordsInt(lista[i], index, item.Value))})
 	}
 
 	tmpl := template.Must(template.ParseFiles("result.html"))

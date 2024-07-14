@@ -1,10 +1,14 @@
 package utils
 
 import (
+	"os"
+	"slices"
 	"strconv"
 	"strings"
 
+	"github.com/PCPedroso/pcp-pcp-word-gen/internal/database"
 	"github.com/tyler-smith/go-bip39"
+	"gopkg.in/yaml.v3"
 )
 
 func InteiroParaBinario(numero int) string {
@@ -42,10 +46,14 @@ func BinaryToDecimal(binario string) int {
 	return int(numero)
 }
 
-func ReplaceWordsInt(values string, index string, decimal int) string {
-	i, _ := strconv.Atoi(index)
+func ReplaceWordsInt(values string, index int, decimal int) string {
 	words := strings.Fields(values)
-	words[i] = GetWordByIndex(decimal)
+	if index == -1 {
+		words[0] = "INDEX-ERROR"
+	} else {
+		words[index] = GetWordByIndex(decimal)
+	}
+
 	return strings.Join(words, " ")
 }
 
@@ -73,4 +81,40 @@ func TextToList(texto string) []string {
 	}
 
 	return registros
+}
+
+func ReadConfig() (*database.Config, error) {
+	data, err := os.ReadFile("config.yaml")
+	if err != nil {
+		return &database.Config{}, err
+	}
+
+	var config *database.Config
+	err = yaml.Unmarshal(data, &config)
+	if err != nil {
+		return &database.Config{}, err
+	}
+
+	return config, nil
+}
+
+func SetIndexByChar(value string) (int, error) {
+	columns, err := ReadConfig()
+	if err != nil {
+		return -1, err
+	}
+
+	for key, item := range columns.Columns {
+		chars := strings.Split(item, ",")
+
+		if slices.Index(chars, value) > -1 {
+			i, err := strconv.Atoi(key)
+			if err != nil {
+				return i, err
+			}
+
+			return i, nil
+		}
+	}
+	return -1, nil
 }

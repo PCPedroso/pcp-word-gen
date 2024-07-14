@@ -21,5 +21,6 @@ func main() {
 	mux.HandleFunc("/gabaritocsv", handlers.GeraGabaritoCSV)
 
 	fmt.Println("Server is running on http://localhost:8080")
+
 	http.ListenAndServe(":8080", mux)
 }
