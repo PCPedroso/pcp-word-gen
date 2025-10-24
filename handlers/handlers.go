@@ -133,15 +133,16 @@ func EditHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func ProcessHandler(w http.ResponseWriter, r *http.Request) {
-	entropy, _ := bip39.NewEntropy(256)
+	var userWords string
 
-	var words string
-	for range 10 {
-		mnemonic, _ := bip39.NewMnemonic(entropy)
-		words += mnemonic + " "
+	for _, item := range dataSource {
+		world := utils.GetWordByIndex(item.Value)
+		userWords += world + " "
 	}
 
-	lista := utils.TextToList(words)
+	allWords := utils.CreateAllWords(userWords, len(dataSource)*10)
+
+	lista := utils.TextToList(allWords)
 
 	result := []database.Result{}
 	for i, item := range dataSource {

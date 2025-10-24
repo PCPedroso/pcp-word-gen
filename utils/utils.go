@@ -118,3 +118,20 @@ func SetIndexByChar(value string) (int, error) {
 	}
 	return -1, nil
 }
+
+func CreateAllWords(userWords string, maxWord int) string {
+	var allWords string
+
+	for len(strings.Fields(allWords)) < maxWord {
+		entropy, _ := bip39.NewEntropy(128)
+		mnemonic, _ := bip39.NewMnemonic(entropy)
+
+		for _, item := range strings.Split(mnemonic, " ") {
+			if !strings.Contains(allWords, item) && !strings.Contains(userWords, item) {
+				allWords += item + " "
+			}
+		}
+	}
+
+	return allWords
+}
